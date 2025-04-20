@@ -22,4 +22,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          asset_paths: '["./*.dll", "./*.so", "./*.dylib"]'
+          asset_paths: '["./build/*"]'

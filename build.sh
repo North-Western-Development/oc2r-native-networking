@@ -24,10 +24,10 @@ if ! [ -d macsdk-arm64 ]; then
     mv MacOS* macsdk-arm64
 fi
 
-$CLANG $CFLAGS -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target x86_64-apple-macos10.8 -isysroot macsdk-intel -o liboc2rnet-x86_64.dylib
-$CLANG $CFLAGS -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target arm64-apple-macos11.0 -isysroot macsdk-arm64 -o liboc2rnet-arm64.dylib
+mkdir -p build
 
-$STRIP liboc2rnet-*
+$CLANG $CFLAGS -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target x86_64-apple-macos10.8 -isysroot macsdk-intel -o build/liboc2rnet-x86_64.dylib
+$CLANG $CFLAGS -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target arm64-apple-macos11.0 -isysroot macsdk-arm64 -o build/liboc2rnet-arm64.dylib
 
 # build for other platforms
 
@@ -36,9 +36,11 @@ if ! [ -d zig ]; then
     mv zig-* zig
 fi
 
-zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -static -shared -target x86_64-linux-musl -o liboc2rnet-linux-x86_64.so
-zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -static -shared -target aarch64-linux-musl -o liboc2rnet-linux-arm64.so
-zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -shared -target x86_64-windows-gnu -o oc2rnet-x86_64.dll -licmp
-zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -shared -target aarch64-windows-gnu -o oc2rnet-arm64.dll -licmp
+zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -static -shared -target x86_64-linux-musl -o build/liboc2rnet-linux-x86_64.so
+zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -static -shared -target aarch64-linux-musl -o build/liboc2rnet-linux-arm64.so
+zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -shared -target x86_64-windows-gnu -o build/oc2rnet-x86_64.dll -licmp
+zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -shared -target aarch64-windows-gnu -o build/oc2rnet-arm64.dll -licmp
 
-$STRIP ./*.so ./*.dylib
+rm build/*.lib
+
+$STRIP ./build/*
