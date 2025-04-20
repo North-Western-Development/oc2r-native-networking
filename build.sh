@@ -5,11 +5,10 @@
 
 [ -z "$CLANG" ] && CLANG=clang
 [ -z "$STRIP" ] && STRIP=llvm-strip
-[ -z "$LIPO" ] && LIPO=llvm-lipo
 
 # build for mac
 
-for dep in wget $CLANG $STRIP $LIPO; do
+for dep in wget $CLANG $STRIP; do
     if ! command -v "$dep" > /dev/null; then
         error "Missing dependency: $dep"
     fi
@@ -29,10 +28,6 @@ $CLANG $CFLAGS -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target x86_64-apple
 $CLANG $CFLAGS -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target arm64-apple-macos11.0 -isysroot macsdk-arm64 -o liboc2rnet-arm64.dylib
 
 $STRIP liboc2rnet-*
-
-$LIPO -create liboc2rnet-*.dylib -output liboc2rnet.dylib
-
-rm -f liboc2rnet-*.dylib
 
 # build for other platforms
 
