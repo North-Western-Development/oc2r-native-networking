@@ -31,8 +31,8 @@ static uint16_t checksum(void *b, int len) {
 #include <sys/socket.h>
 #include <unistd.h>
 
-static ssize_t doPing(uint32_t ip, size_t size, char *data,
-                      char *response, uint32_t timeout) {
+static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
+                      uint32_t timeout) {
   int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
   if (sockfd < 0) {
     return -1;
@@ -113,8 +113,8 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data,
 
 #include <icmpapi.h>
 
-static ssize_t doPing(uint32_t ip, size_t size, char *data,
-                      char *response, uint32_t timeout) {
+static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
+                      uint32_t timeout) {
   IPAddr ip_addr = ip;
 
   HANDLE hIcmp = IcmpCreateFile();
@@ -144,6 +144,96 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data,
   free(replyBuffer);
   IcmpCloseHandle(hIcmp);
   return result;
+}
+
+#elif defined(__APPLE__)
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
+
+static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
+                      uint32_t timeout) {
+  int sockfd;
+  struct sockaddr_in dest_addr = {0};
+  unsigned char sendbuf[1024];
+  unsigned char recvbuf[1024];
+  struct icmp *icmp_hdr;
+  ssize_t sent_bytes, recv_bytes;
+  socklen_t addrlen = sizeof(dest_addr);
+  struct timeval tv;
+
+  if (size > sizeof(sendbuf) - sizeof(struct icmp))
+    size = sizeof(sendbuf) - sizeof(struct icmp);
+
+  // Create socket
+  sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+  if (sockfd < 0)
+    return -1;
+
+  // Set timeout
+  tv.tv_sec = timeout / 1000;
+  tv.tv_usec = (timeout % 1000) * 1000;
+  setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+
+  // Prepare destination address
+  dest_addr.sin_family = AF_INET;
+  dest_addr.sin_addr.s_addr = ip;
+
+  // Build ICMP echo request
+  icmp_hdr = (struct icmp *)sendbuf;
+  icmp_hdr->icmp_type = ICMP_ECHO;
+  icmp_hdr->icmp_code = 0;
+  icmp_hdr->icmp_id = getpid() & 0xFFFF;
+  icmp_hdr->icmp_seq = 0;
+  memcpy(icmp_hdr->icmp_data, data, size);
+  int packet_size = sizeof(struct icmp) + size;
+  icmp_hdr->icmp_cksum = 0;
+  icmp_hdr->icmp_cksum = checksum((uint16_t *)icmp_hdr, packet_size);
+
+  // Send
+  sent_bytes = sendto(sockfd, sendbuf, packet_size, 0,
+                      (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+  if (sent_bytes < 0) {
+    close(sockfd);
+    return -1;
+  }
+
+  // Receive
+  recv_bytes = recvfrom(sockfd, recvbuf, sizeof(recvbuf), 0, NULL, NULL);
+  if (recv_bytes < 0) {
+    close(sockfd);
+    return -1;
+  }
+
+  // Extract ICMP header from IP packet
+  struct ip *ip_hdr = (struct ip *)recvbuf;
+  int ip_hdr_len = ip_hdr->ip_hl << 2;
+
+  if (recv_bytes < ip_hdr_len + sizeof(struct icmp)) {
+    close(sockfd);
+    return -1;
+  }
+
+  struct icmp *recv_icmp = (struct icmp *)(recvbuf + ip_hdr_len);
+  if (recv_icmp->icmp_type != ICMP_ECHOREPLY ||
+      recv_icmp->icmp_id != icmp_hdr->icmp_id) {
+    close(sockfd);
+    return -1;
+  }
+
+  // Copy response data
+  size_t data_len = recv_bytes - ip_hdr_len - sizeof(struct icmp);
+  if (data_len > size)
+    data_len = size;
+  memcpy(response, recv_icmp->icmp_data, data_len);
+
+  close(sockfd);
+  return data_len;
 }
 
 #else
