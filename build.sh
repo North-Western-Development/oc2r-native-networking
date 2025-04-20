@@ -9,7 +9,7 @@ LIPO=llvm-lipo
 
 # build for mac
 
-for dep in $CLANG $STRIP $LIPO; do
+for dep in wget $CLANG $STRIP $LIPO; do
     if ! command -v "$dep" > /dev/null; then
         error "Missing dependency: $dep"
     fi
