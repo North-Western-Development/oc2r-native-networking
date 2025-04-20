@@ -23,12 +23,12 @@ static uint16_t checksum(void *b, int len) {
 
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <poll.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 struct icmp_header {
