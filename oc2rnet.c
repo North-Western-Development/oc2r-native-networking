@@ -1,9 +1,7 @@
 #ifndef CLITEST
 #include "li_cil_oc2_common_inet_DefaultSessionLayer.h"
 #endif
-#include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -170,6 +168,8 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
 #ifdef CLITEST
 
+#include <stdio.h>
+
 #define PACKET_SIZE 8100
 
 int main(int argc, char *argv[]) {
@@ -208,9 +208,9 @@ Java_li_cil_oc2_common_inet_DefaultSessionLayer_sendICMP(
   jbyte *addr = (*env)->GetByteArrayElements(env, ip, NULL);
   jbyte *response = calloc(size, 1);
   if (!response)
-    fprintf(stderr, "[OC2R-network]: malloc failed\n");
+    return NULL;
 
-  ssize_t retsize = doPing(*(uint32_t *)addr, size, olddata, response, timeout);
+  ssize_t retsize = doPing(*(uint32_t *)addr, size, (char *)olddata, (char *)response, timeout);
   if (retsize == -1)
     return NULL;
 
