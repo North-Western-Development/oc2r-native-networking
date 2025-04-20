@@ -10,7 +10,8 @@
 
 for dep in wget $CLANG $STRIP; do
     if ! command -v "$dep" > /dev/null; then
-        error "Missing dependency: $dep"
+        printf "Error: Missing dependency: %s\n" "$dep"
+        exit 1
     fi
 done
 
