@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef CLITEST
+#include <stdio.h>
+#endif
 
 #ifndef _WIN32
 static uint16_t checksum(void *b, int len) {
@@ -54,6 +57,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
                       uint32_t timeout) {
   int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
   if (sockfd < 0) {
+#ifdef CLITEST
+    perror("socket");
+#endif
     return -1;
   }
 
@@ -80,6 +86,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
   if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&addr,
              sizeof(addr)) < 0) {
+#ifdef CLITEST
+    perror("sendto");
+#endif
     free(packet);
     close(sockfd);
     return -1;
@@ -92,6 +101,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
   int poll_result = poll(&pfd, 1, timeout);
   if (poll_result < 0) {
+#ifdef CLITEST
+    perror("poll");
+#endif
     free(packet);
     close(sockfd);
     return -1;
@@ -109,6 +121,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   ssize_t n = recvfrom(sockfd, recvbuf, size + sizeof(struct icmp_header), 0,
                        NULL, NULL);
   if (n < 0) {
+#ifdef CLITEST
+    perror("recvfrom");
+#endif
     free(packet);
     free(recvbuf);
     close(sockfd);
