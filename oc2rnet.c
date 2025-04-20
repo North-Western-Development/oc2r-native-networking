@@ -174,7 +174,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    printf("usage: %s <ip>", argv[0]);
+    printf("usage: %s <ip>\n", argv[0]);
     return 1;
   }
 
