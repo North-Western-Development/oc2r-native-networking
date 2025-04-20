@@ -31,8 +31,8 @@ static uint16_t checksum(void *b, int len) {
 #include <sys/socket.h>
 #include <unistd.h>
 
-static ssize_t doPing(uint32_t ip, size_t size, signed char *data,
-                      signed char *response, uint32_t timeout) {
+static ssize_t doPing(uint32_t ip, size_t size, char *data,
+                      char *response, uint32_t timeout) {
   int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
   if (sockfd < 0) {
     return -1;
@@ -107,12 +107,14 @@ static ssize_t doPing(uint32_t ip, size_t size, signed char *data,
 #elif defined(_WIN32)
 
 #include <winsock2.h>
-#include <ws2tcpip.h>
+
 #include <iphlpapi.h>
+#include <ws2tcpip.h>
+
 #include <icmpapi.h>
 
-ssize_t doPing(uint32_t ip, size_t size, signed char *data,
-               signed char *response, uint32_t timeout) {
+static ssize_t doPing(uint32_t ip, size_t size, char *data,
+                      char *response, uint32_t timeout) {
   IPAddr ip_addr = ip;
 
   HANDLE hIcmp = IcmpCreateFile();
