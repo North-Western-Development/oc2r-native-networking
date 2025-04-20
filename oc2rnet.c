@@ -23,13 +23,31 @@ static uint16_t checksum(void *b, int len) {
 }
 #endif
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
 
-#include <netinet/in.h>
+#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+struct icmp_header {
+  uint8_t type;
+  uint8_t code;
+  uint16_t checksum;
+  union {
+    struct {
+      uint16_t id;
+      uint16_t sequence;
+    } echo;
+    uint32_t gateway;
+    struct {
+      uint16_t unused;
+      uint16_t mtu;
+    } frag;
+    uint8_t reserved[4];
+  } un;
+};
 
 static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
                       uint32_t timeout) {
@@ -43,19 +61,19 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
       .sin_addr.s_addr = ip,
   };
 
-  size_t packet_size = sizeof(struct icmphdr) + size;
+  size_t packet_size = sizeof(struct icmp_header) + size;
   unsigned char *packet = malloc(packet_size);
   if (!packet) {
     close(sockfd);
     return -1;
   }
 
-  struct icmphdr *icmp = (struct icmphdr *)packet;
+  struct icmp_header *icmp = (struct icmp_header *)packet;
   icmp->type = ICMP_ECHO;
   icmp->code = 0;
   icmp->un.echo.id = getpid() & 0xFFFF;
   icmp->un.echo.sequence = 1;
-  memcpy(packet + sizeof(struct icmphdr), data, size);
+  memcpy(packet + sizeof(struct icmp_header), data, size);
   icmp->checksum = 0;
   icmp->checksum = checksum(packet, packet_size);
 
@@ -82,13 +100,13 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
-  unsigned char *recvbuf = calloc(size + sizeof(struct icmphdr), 1);
+  unsigned char *recvbuf = calloc(size + sizeof(struct icmp_header), 1);
   if (!recvbuf) {
     free(packet);
     close(sockfd);
   }
-  ssize_t n =
-      recvfrom(sockfd, recvbuf, size + sizeof(struct icmphdr), 0, NULL, NULL);
+  ssize_t n = recvfrom(sockfd, recvbuf, size + sizeof(struct icmp_header), 0,
+                       NULL, NULL);
   if (n < 0) {
     free(packet);
     free(recvbuf);
@@ -96,12 +114,12 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
-  memcpy(response, recvbuf + sizeof(struct icmphdr),
-         n - sizeof(struct icmphdr));
+  memcpy(response, recvbuf + sizeof(struct icmp_header),
+         n - sizeof(struct icmp_header));
   free(packet);
   free(recvbuf);
   close(sockfd);
-  return n - sizeof(struct icmphdr);
+  return n - sizeof(struct icmp_header);
 }
 
 #elif defined(_WIN32)
@@ -146,123 +164,35 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   return result;
 }
 
-#elif defined(__APPLE__)
-
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
-                      uint32_t timeout) {
-  int sockfd;
-  struct sockaddr_in dest_addr = {0};
-  unsigned char sendbuf[1024];
-  unsigned char recvbuf[1024];
-  struct icmp *icmp_hdr;
-  ssize_t sent_bytes, recv_bytes;
-  socklen_t addrlen = sizeof(dest_addr);
-  struct timeval tv;
-
-  if (size > sizeof(sendbuf) - sizeof(struct icmp))
-    size = sizeof(sendbuf) - sizeof(struct icmp);
-
-  // Create socket
-  sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
-  if (sockfd < 0)
-    return -1;
-
-  // Set timeout
-  tv.tv_sec = timeout / 1000;
-  tv.tv_usec = (timeout % 1000) * 1000;
-  setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
-
-  // Prepare destination address
-  dest_addr.sin_family = AF_INET;
-  dest_addr.sin_addr.s_addr = ip;
-
-  // Build ICMP echo request
-  icmp_hdr = (struct icmp *)sendbuf;
-  icmp_hdr->icmp_type = ICMP_ECHO;
-  icmp_hdr->icmp_code = 0;
-  icmp_hdr->icmp_id = getpid() & 0xFFFF;
-  icmp_hdr->icmp_seq = 0;
-  memcpy(icmp_hdr->icmp_data, data, size);
-  int packet_size = sizeof(struct icmp) + size;
-  icmp_hdr->icmp_cksum = 0;
-  icmp_hdr->icmp_cksum = checksum((uint16_t *)icmp_hdr, packet_size);
-
-  // Send
-  sent_bytes = sendto(sockfd, sendbuf, packet_size, 0,
-                      (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-  if (sent_bytes < 0) {
-    close(sockfd);
-    return -1;
-  }
-
-  // Receive
-  recv_bytes = recvfrom(sockfd, recvbuf, sizeof(recvbuf), 0, NULL, NULL);
-  if (recv_bytes < 0) {
-    close(sockfd);
-    return -1;
-  }
-
-  // Extract ICMP header from IP packet
-  struct ip *ip_hdr = (struct ip *)recvbuf;
-  int ip_hdr_len = ip_hdr->ip_hl << 2;
-
-  if (recv_bytes < ip_hdr_len + sizeof(struct icmp)) {
-    close(sockfd);
-    return -1;
-  }
-
-  struct icmp *recv_icmp = (struct icmp *)(recvbuf + ip_hdr_len);
-  if (recv_icmp->icmp_type != ICMP_ECHOREPLY ||
-      recv_icmp->icmp_id != icmp_hdr->icmp_id) {
-    close(sockfd);
-    return -1;
-  }
-
-  // Copy response data
-  size_t data_len = recv_bytes - ip_hdr_len - sizeof(struct icmp);
-  if (data_len > size)
-    data_len = size;
-  memcpy(response, recv_icmp->icmp_data, data_len);
-
-  close(sockfd);
-  return data_len;
-}
-
 #else
 #error platform not supported
 #endif
 
 #ifdef CLITEST
 
+#define PACKET_SIZE 8100
+
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    puts("usage: %s <ip>");
+    printf("usage: %s <ip>", argv[0]);
     return 1;
   }
 
   char ip[4];
   sscanf(argv[1], "%hhu.%hhu.%hhu.%hhu\n", ip, ip + 1, ip + 2, ip + 3);
   printf("Pinging %hhu.%hhu.%hhu.%hhu\n", ip[0], ip[1], ip[2], ip[3]);
-  char data[64];
-  char newdata[sizeof(data)];
-  memset(data, 0x69, sizeof(data));
-  memset(newdata, 0, sizeof(newdata));
-  ssize_t ret = doPing(*(uint32_t *)ip, 64, data, newdata, 1000);
+  char *data = malloc(PACKET_SIZE);
+  char *newdata = malloc(PACKET_SIZE);
+  memset(data, 0x69, PACKET_SIZE);
+  memset(newdata, 0, PACKET_SIZE);
+  ssize_t ret = doPing(*(uint32_t *)ip, PACKET_SIZE, data, newdata, 1000);
   if (ret == -1) {
     puts("Ping failed!");
     return 1;
   }
   printf("got back %zd bytes\n", ret);
   FILE *file = fopen("pingout", "w");
-  fwrite(newdata, 1, sizeof(newdata), file);
+  fwrite(newdata, 1, PACKET_SIZE, file);
   fclose(file);
   return 0;
 }
