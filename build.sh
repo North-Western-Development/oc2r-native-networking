@@ -44,4 +44,4 @@ fi
 zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -static -shared -target x86_64-linux-musl -o liboc2rnet-x86_64.so
 zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -static -shared -target aarch64-linux-musl -o liboc2rnet-arm64.so
 zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -shared -target x86_64-windows-gnu -o oc2rnet-x86_64.dll -licmp
-#zig/zig cc $CFLAGS -shared -target aarch64-windows-gnu -o oc2rnet-arm64.dll
+zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -shared -target aarch64-windows-gnu -o oc2rnet-arm64.dll -licmp
