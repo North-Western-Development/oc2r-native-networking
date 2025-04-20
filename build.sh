@@ -3,9 +3,9 @@
 
 [ -z "$CFLAGS" ] && CFLAGS='-Os -Wall -Wextra -pedantic'
 
-CLANG=clang
-STRIP=llvm-strip
-LIPO=llvm-lipo
+[ -z "$CLANG" ] && CLANG=clang
+[ -z "$STRIP" ] && STRIP=llvm-strip
+[ -z "$LIPO" ] && LIPO=llvm-lipo
 
 # build for mac
 
