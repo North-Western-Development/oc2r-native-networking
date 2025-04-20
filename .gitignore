@@ -1,6 +1,8 @@
 *.so
 *.dll
 *.dylib
+*.lib
+*.pdb
 .DS_Store
 pingout
 macsdk-intel
