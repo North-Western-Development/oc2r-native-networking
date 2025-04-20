@@ -242,12 +242,15 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
 #ifdef CLITEST
 
-int main(void) {
+int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    puts("usage: %s <ip>");
+    return 1;
+  }
+
   char ip[4];
-  ip[0] = 1;
-  ip[1] = 1;
-  ip[2] = 1;
-  ip[3] = 1;
+  sscanf(argv[1], "%hhu.%hhu.%hhu.%hhu\n", ip, ip + 1, ip + 2, ip + 3);
+  printf("Pinging %hhu.%hhu.%hhu.%hhu\n", ip[0], ip[1], ip[2], ip[3]);
   char data[64];
   char newdata[sizeof(data)];
   memset(data, 0x69, sizeof(data));
