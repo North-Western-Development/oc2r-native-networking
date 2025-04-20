@@ -1,0 +1,23 @@
+name: build
+
+on:
+  push:
+    branches: [ 'master' ]
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: ./build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: natives
+          path: *oc2rnet-*
