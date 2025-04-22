@@ -44,4 +44,4 @@ zig/zig cc $CFLAGS -Ijni-headers oc2rnet.c -shared -target aarch64-windows-gnu -
 
 rm build/*.lib
 
-$STRIP ./build/*
+$STRIP ./build/*.so
