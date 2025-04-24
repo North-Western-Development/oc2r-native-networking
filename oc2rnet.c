@@ -108,6 +108,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     close(sockfd);
     return -1;
   } else if (poll_result == 0) {
+#ifdef CLITEST
+    fputs("Timed out\n", stderr);
+#endif
     free(packet);
     close(sockfd);
     return -1;
