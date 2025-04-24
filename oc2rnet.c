@@ -191,7 +191,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
 #include <stdio.h>
 
-#define PACKET_SIZE 8100
+#ifndef PACKET_SIZE
+#define PACKET_SIZE 64
+#endif
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
