@@ -152,6 +152,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   DWORD replySize = sizeof(ICMP_ECHO_REPLY) + size;
   void *replyBuffer = malloc(replySize);
   if (!replyBuffer) {
+#ifdef CLITEST
+    fputs("malloc failed\n", stderr);
+#endif
     IcmpCloseHandle(hIcmp);
     return -1;
   }
@@ -162,9 +165,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   ssize_t result = -1;
   if (ret > 0) {
     PICMP_ECHO_REPLY echoReply = (PICMP_ECHO_REPLY)replyBuffer;
-    DWORD bytesReceived = echoReply->DataSize;
+    size_t bytesReceived = echoReply->DataSize;
     if (bytesReceived > size)
-      bytesReceived = (DWORD)size;
+      bytesReceived = size;
     memcpy(response, echoReply->Data, bytesReceived);
     result = bytesReceived;
   }
