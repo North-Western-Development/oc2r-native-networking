@@ -38,7 +38,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
   size_t header_size =
 #ifdef __linux__
-      sizeof(struct icmphdr);
+      ICMP_HEADER_SIZE;
 #else
       sizeof(struct icmp);
 #endif
@@ -49,21 +49,12 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
-#ifdef __linux__
-  struct icmphdr *icmp = (struct icmphdr *)packet;
-  icmp->type = ICMP_ECHO;
-  icmp->code = 0;
-  icmp->un.echo.id = getpid() & 0xFFFF;
-  icmp->un.echo.sequence = 1;
-  icmp->checksum = 0;
-#else
   struct icmp *icmp = (struct icmp *)packet;
   icmp->icmp_type = ICMP_ECHO;
   icmp->icmp_code = 0;
   icmp->icmp_id = getpid() & 0xFFFF;
   icmp->icmp_seq = 1;
   icmp->icmp_cksum = 0;
-#endif
   memcpy(packet + ICMP_HEADER_SIZE, data, size);
   if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&addr,
              sizeof(addr)) < 0) {
