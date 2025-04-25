@@ -19,23 +19,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-struct icmp_header {
-  uint8_t type;
-  uint8_t code;
-  uint16_t checksum;
-  union {
-    struct {
-      uint16_t id;
-      uint16_t sequence;
-    } echo;
-    uint32_t gateway;
-    struct {
-      uint16_t unused;
-      uint16_t mtu;
-    } frag;
-    uint8_t reserved[4];
-  } un;
-};
+#define ICMP_HEADER_SIZE 8
 
 static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
                       uint32_t timeout) {
@@ -52,21 +36,35 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
       .sin_addr.s_addr = ip,
   };
 
-  size_t packet_size = sizeof(struct icmp_header) + size;
+  size_t header_size =
+#ifdef __linux__
+      sizeof(struct icmphdr);
+#else
+      sizeof(struct icmp);
+#endif
+  size_t packet_size = size + header_size;
   unsigned char *packet = malloc(packet_size);
   if (!packet) {
     close(sockfd);
     return -1;
   }
 
-  struct icmp_header *icmp = (struct icmp_header *)packet;
+#ifdef __linux__
+  struct icmphdr *icmp = (struct icmphdr *)packet;
   icmp->type = ICMP_ECHO;
   icmp->code = 0;
   icmp->un.echo.id = getpid() & 0xFFFF;
   icmp->un.echo.sequence = 1;
-  memcpy(packet + sizeof(struct icmp_header), data, size);
   icmp->checksum = 0;
-
+#else
+  struct icmp *icmp = (struct icmp *)packet;
+  icmp->icmp_type = ICMP_ECHO;
+  icmp->icmp_code = 0;
+  icmp->icmp_id = getpid() & 0xFFFF;
+  icmp->icmp_seq = 1;
+  icmp->icmp_cksum = 0;
+#endif
+  memcpy(packet + ICMP_HEADER_SIZE, data, size);
   if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&addr,
              sizeof(addr)) < 0) {
 #ifdef CLITEST
@@ -99,13 +97,12 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
-  unsigned char *recvbuf = calloc(size + sizeof(struct icmp_header), 1);
+  unsigned char *recvbuf = calloc(packet_size, 1);
   if (!recvbuf) {
     free(packet);
     close(sockfd);
   }
-  ssize_t n = recvfrom(sockfd, recvbuf, size + sizeof(struct icmp_header), 0,
-                       NULL, NULL);
+  ssize_t n = recvfrom(sockfd, recvbuf, packet_size, 0, NULL, NULL);
   if (n < 0) {
 #ifdef CLITEST
     perror("recvfrom");
@@ -116,12 +113,11 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
-  memcpy(response, recvbuf + sizeof(struct icmp_header),
-         n - sizeof(struct icmp_header));
+  memcpy(response, recvbuf + header_size, n - header_size);
   free(packet);
   free(recvbuf);
   close(sockfd);
-  return n - sizeof(struct icmp_header);
+  return n - header_size;
 }
 
 #elif defined(_WIN32)
