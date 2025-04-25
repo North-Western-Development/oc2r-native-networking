@@ -8,6 +8,12 @@
 #include <stdio.h>
 #endif
 
+static void cliprinterr(const char *str) {
+#ifdef CLITEST
+  fputs(str, stderr);
+#endif
+}
+
 #if defined(__linux__) || defined(__APPLE__)
 
 #ifndef __linux__
@@ -36,13 +42,17 @@ static uint16_t checksum(void *b, size_t len) {
 
 #define ICMP_HEADER_SIZE 8
 
+static void cliperror(const char *str) {
+#ifdef CLITEST
+  perror(str);
+#endif
+}
+
 static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
                       uint32_t timeout) {
   int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
   if (sockfd < 0) {
-#ifdef CLITEST
-    perror("socket");
-#endif
+    cliperror("socket");
     return -1;
   }
 
@@ -54,9 +64,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   size_t packet_size = size + ICMP_HEADER_SIZE;
   struct icmp *packet = malloc(packet_size);
   if (!packet) {
-#ifdef CLITEST
-    fputs("malloc failed\n", stderr);
-#endif
+    cliprinterr("malloc failed\n");
     close(sockfd);
     return -1;
   }
@@ -73,9 +81,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
   if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&addr,
              sizeof(addr)) < 0) {
-#ifdef CLITEST
-    perror("sendto");
-#endif
+    cliperror("sendto");
     free(packet);
     close(sockfd);
     return -1;
@@ -89,15 +95,11 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
   int poll_result = poll(&pfd, 1, timeout);
   if (poll_result < 0) {
-#ifdef CLITEST
-    perror("poll");
-#endif
+    cliperror("poll");
     close(sockfd);
     return -1;
   } else if (poll_result == 0) {
-#ifdef CLITEST
-    fputs("Timed out\n", stderr);
-#endif
+    cliprinterr("Timed out\n");
     close(sockfd);
     return -1;
   }
@@ -110,17 +112,13 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 #endif
   unsigned char *recvbuf = malloc(size + header_size);
   if (!recvbuf) {
-#ifdef CLITEST
-    fputs("malloc failed\n", stderr);
-#endif
+    cliprinterr("malloc failed\n");
     close(sockfd);
     return -1;
   }
   ssize_t n = recvfrom(sockfd, recvbuf, size + header_size, 0, NULL, NULL);
   if (n < 0) {
-#ifdef CLITEST
-    perror("recvfrom");
-#endif
+    cliperror("recvfrom");
     free(recvbuf);
     close(sockfd);
     return -1;
@@ -146,15 +144,17 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   IPAddr ip_addr = ip;
 
   HANDLE hIcmp = IcmpCreateFile();
-  if (hIcmp == INVALID_HANDLE_VALUE)
+  if (hIcmp == INVALID_HANDLE_VALUE) {
+#ifdef CLITEST
+    fprintf(stderr, "IcmpCreateFile failed with error %ld\n", GetLastError());
+#endif
     return -1;
+  }
 
   DWORD replySize = sizeof(ICMP_ECHO_REPLY) + size;
   void *replyBuffer = malloc(replySize);
   if (!replyBuffer) {
-#ifdef CLITEST
-    fputs("malloc failed\n", stderr);
-#endif
+    cliprinterr("malloc failed\n");
     IcmpCloseHandle(hIcmp);
     return -1;
   }
@@ -171,6 +171,15 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     memcpy(response, echoReply->Data, bytesReceived);
     result = bytesReceived;
   }
+#ifdef CLITEST
+  else {
+    DWORD error = GetLastError();
+    if (error == 11010)
+      fprintf(stderr, "Timed out\n");
+    else
+      fprintf(stderr, "IcmpCreateFile failed with error %ld\n", error);
+  }
+#endif
 
   free(replyBuffer);
   IcmpCloseHandle(hIcmp);
