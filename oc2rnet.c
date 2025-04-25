@@ -108,7 +108,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 #else
       sizeof(struct icmp);
 #endif
-  unsigned char *recvbuf = calloc(size + header_size, 1);
+  unsigned char *recvbuf = malloc(size + header_size);
   if (!recvbuf) {
 #ifdef CLITEST
     fputs("malloc failed\n", stderr);
