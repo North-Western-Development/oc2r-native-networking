@@ -8,7 +8,7 @@
 #include <stdio.h>
 #endif
 
-#ifndef _WIN32
+#ifdef __APPLE__
 static uint16_t checksum(void *b, int len) {
   uint16_t *buf = b;
   uint32_t sum = 0;
@@ -82,7 +82,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   icmp->un.echo.sequence = 1;
   memcpy(packet + sizeof(struct icmp_header), data, size);
   icmp->checksum = 0;
+#ifdef __APPLE__
   icmp->checksum = checksum(packet, packet_size);
+#endif
 
   if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&addr,
              sizeof(addr)) < 0) {
