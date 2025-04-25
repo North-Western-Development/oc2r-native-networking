@@ -8,7 +8,9 @@
 #include <stdio.h>
 #endif
 
-#ifdef __APPLE__
+#if defined(__linux__) || defined(__APPLE__)
+
+#ifndef __linux__
 static uint16_t checksum(void *b, int len) {
   uint16_t *buf = b;
   uint32_t sum = 0;
@@ -23,8 +25,6 @@ static uint16_t checksum(void *b, int len) {
   return ~sum;
 }
 #endif
-
-#if defined(__linux__) || defined(__APPLE__)
 
 #include <sys/types.h>
 
@@ -65,9 +65,9 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   packet->icmp_code = 0;
   packet->icmp_id = getpid() & 0xFFFF;
   packet->icmp_seq = 1;
-  packet->icmp_cksum = 0;
   memcpy(packet->icmp_data, data, size);
-#ifdef __APPLE__
+#ifndef __linux__ // Linux ignores and recalculates the checksum for us
+  packet->icmp_cksum = 0;
   packet->icmp_cksum = checksum(packet, packet_size);
 #endif
 
