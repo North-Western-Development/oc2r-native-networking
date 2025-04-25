@@ -42,7 +42,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 #else
       sizeof(struct icmp);
 #endif
-  size_t packet_size = size + header_size;
+  size_t packet_size = size + ICMP_HEADER_SIZE;
   unsigned char *packet = malloc(packet_size);
   if (!packet) {
     close(sockfd);
@@ -97,12 +97,12 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
-  unsigned char *recvbuf = calloc(packet_size, 1);
+  unsigned char *recvbuf = calloc(size + header_size, 1);
   if (!recvbuf) {
     free(packet);
     close(sockfd);
   }
-  ssize_t n = recvfrom(sockfd, recvbuf, packet_size, 0, NULL, NULL);
+  ssize_t n = recvfrom(sockfd, recvbuf, size + header_size, 0, NULL, NULL);
   if (n < 0) {
 #ifdef CLITEST
     perror("recvfrom");
