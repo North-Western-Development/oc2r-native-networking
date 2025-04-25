@@ -44,4 +44,4 @@ fi
 
 rm build/*.lib
 
-$STRIP ./build/*.so
+$STRIP ./build/*
