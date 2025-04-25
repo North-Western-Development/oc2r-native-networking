@@ -166,7 +166,13 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   if (ret > 0) {
     PICMP_ECHO_REPLY echoReply = (PICMP_ECHO_REPLY)replyBuffer;
     size_t bytesReceived = echoReply->DataSize;
-    if (bytesReceived > size)
+    if (bytesReceived == 0) { // Windows sometimes succeeds with a 0 byte reply
+                              // when it should fail
+      cliprinterr("Zero-size reply\n");
+      free(replyBuffer);
+      IcmpCloseHandle(hIcmp);
+      return -1;
+    } else if (bytesReceived > size)
       bytesReceived = size;
     memcpy(response, echoReply->Data, bytesReceived);
     result = bytesReceived;
@@ -177,7 +183,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     if (error == 11010)
       fprintf(stderr, "Timed out\n");
     else
-      fprintf(stderr, "IcmpCreateFile failed with error %ld\n", error);
+      fprintf(stderr, "IcmpSendEcho failed with error %ld\n", error);
   }
 #endif
 
