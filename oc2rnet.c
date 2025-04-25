@@ -11,7 +11,7 @@
 #if defined(__linux__) || defined(__APPLE__)
 
 #ifndef __linux__
-static uint16_t checksum(void *b, int len) {
+static uint16_t checksum(void *b, size_t len) {
   uint16_t *buf = b;
   uint32_t sum = 0;
 
