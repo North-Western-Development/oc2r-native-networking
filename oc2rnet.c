@@ -8,11 +8,11 @@
 #include <stdio.h>
 #endif
 
-static void cliprinterr(const char *str) {
 #ifdef CLITEST
-  fputs(str, stderr);
+#define cliprinterr(str) fputs(str, stderr)
+#else
+#define cliprinterr(str)
 #endif
-}
 
 #if defined(__linux__) || defined(__APPLE__)
 
@@ -42,11 +42,11 @@ static uint16_t checksum(void *b, size_t len) {
 
 #define ICMP_HEADER_SIZE 8
 
-static void cliperror(const char *str) {
 #ifdef CLITEST
-  perror(str);
+#define cliperror(str) perror(str)
+#else
+#define cliperror(str)
 #endif
-}
 
 static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
                       uint32_t timeout) {
