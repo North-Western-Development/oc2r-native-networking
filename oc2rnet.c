@@ -36,12 +36,6 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
       .sin_addr.s_addr = ip,
   };
 
-  size_t header_size =
-#ifdef __linux__
-      ICMP_HEADER_SIZE;
-#else
-      sizeof(struct icmp);
-#endif
   size_t packet_size = size + ICMP_HEADER_SIZE;
   unsigned char *packet = malloc(packet_size);
   if (!packet) {
@@ -88,6 +82,12 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
+  size_t header_size =
+#ifdef __linux__
+      ICMP_HEADER_SIZE;
+#else
+      sizeof(struct icmp);
+#endif
   unsigned char *recvbuf = calloc(size + header_size, 1);
   if (!recvbuf) {
     free(packet);
