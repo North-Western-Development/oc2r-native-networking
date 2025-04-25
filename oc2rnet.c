@@ -18,7 +18,7 @@ static uint16_t checksum(void *b, int len) {
   if (len == 1)
     sum += *(uint8_t *)buf;
 
-  sum = (sum >> 16) + (sum & 0xffff);
+  sum = (sum >> 16) + (sum & 0xFFFF);
   sum += (sum >> 16);
   return ~sum;
 }
