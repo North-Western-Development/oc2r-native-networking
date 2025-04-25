@@ -52,19 +52,21 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   };
 
   size_t packet_size = size + ICMP_HEADER_SIZE;
-  unsigned char *packet = malloc(packet_size);
+  struct icmp *packet = malloc(packet_size);
   if (!packet) {
+#ifdef CLITEST
+    fputs("malloc failed\n", stderr);
+#endif
     close(sockfd);
     return -1;
   }
 
-  struct icmp *icmp = (struct icmp *)packet;
-  icmp->icmp_type = ICMP_ECHO;
-  icmp->icmp_code = 0;
-  icmp->icmp_id = getpid() & 0xFFFF;
-  icmp->icmp_seq = 1;
-  icmp->icmp_cksum = 0;
-  memcpy(packet + ICMP_HEADER_SIZE, data, size);
+  packet->icmp_type = ICMP_ECHO;
+  packet->icmp_code = 0;
+  packet->icmp_id = getpid() & 0xFFFF;
+  packet->icmp_seq = 1;
+  packet->icmp_cksum = 0;
+  memcpy(packet->icmp_data, data, size);
 #ifdef __APPLE__
   icmp->icmp_cksum = checksum(packet, packet_size);
 #endif
@@ -78,6 +80,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     close(sockfd);
     return -1;
   }
+  free(packet);
 
   struct pollfd pfd = {
       .fd = sockfd,
@@ -89,14 +92,12 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 #ifdef CLITEST
     perror("poll");
 #endif
-    free(packet);
     close(sockfd);
     return -1;
   } else if (poll_result == 0) {
 #ifdef CLITEST
     fputs("Timed out\n", stderr);
 #endif
-    free(packet);
     close(sockfd);
     return -1;
   }
@@ -109,22 +110,23 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 #endif
   unsigned char *recvbuf = calloc(size + header_size, 1);
   if (!recvbuf) {
-    free(packet);
+#ifdef CLITEST
+    fputs("malloc failed\n", stderr);
+#endif
     close(sockfd);
+    return -1;
   }
   ssize_t n = recvfrom(sockfd, recvbuf, size + header_size, 0, NULL, NULL);
   if (n < 0) {
 #ifdef CLITEST
     perror("recvfrom");
 #endif
-    free(packet);
     free(recvbuf);
     close(sockfd);
     return -1;
   }
 
   memcpy(response, recvbuf + header_size, n - header_size);
-  free(packet);
   free(recvbuf);
   close(sockfd);
   return n - header_size;
