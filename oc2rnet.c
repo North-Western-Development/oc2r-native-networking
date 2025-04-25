@@ -68,7 +68,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   packet->icmp_cksum = 0;
   memcpy(packet->icmp_data, data, size);
 #ifdef __APPLE__
-  icmp->icmp_cksum = checksum(packet, packet_size);
+  packet->icmp_cksum = checksum(packet, packet_size);
 #endif
 
   if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&addr,
