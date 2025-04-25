@@ -8,22 +8,6 @@
 #include <stdio.h>
 #endif
 
-#ifdef __APPLE__
-static uint16_t checksum(void *b, int len) {
-  uint16_t *buf = b;
-  uint32_t sum = 0;
-
-  for (; len > 1; len -= 2)
-    sum += *buf++;
-  if (len == 1)
-    sum += *(uint8_t *)buf;
-
-  sum = (sum >> 16) + (sum & 0xffff);
-  sum += (sum >> 16);
-  return ~sum;
-}
-#endif
-
 #if defined(__linux__) || defined(__APPLE__)
 
 #include <sys/types.h>
@@ -82,9 +66,6 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
   icmp->un.echo.sequence = 1;
   memcpy(packet + sizeof(struct icmp_header), data, size);
   icmp->checksum = 0;
-#ifdef __APPLE__
-  icmp->checksum = checksum(packet, packet_size);
-#endif
 
   if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)&addr,
              sizeof(addr)) < 0) {
