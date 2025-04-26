@@ -244,16 +244,20 @@ Java_li_cil_oc2_common_inet_DefaultSessionLayer_sendICMP(
 
   ssize_t retsize = doPing(*(uint32_t *)addr, size, (char *)olddata,
                            (char *)response, timeout);
-  if (retsize == -1)
-    return NULL;
-
-  jbyteArray ret = (*env)->NewByteArray(env, retsize);
-  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)response);
-  free(response);
   (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
   (*env)->ReleaseByteArrayElements(env, ip, addr, JNI_ABORT);
-  if (!ret)
+  if (retsize == -1) {
+    free(response);
     return NULL;
+  }
+
+  jbyteArray ret = (*env)->NewByteArray(env, retsize);
+  if (!ret) {
+    free(response);
+    return NULL;
+  }
+  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)response);
+  free(response);
   return ret;
 }
 
