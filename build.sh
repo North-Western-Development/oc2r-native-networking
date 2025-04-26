@@ -27,8 +27,8 @@ fi
 
 mkdir -p build
 
-$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target x86_64-apple-macos10.8 -isysroot macsdk-intel -o build/liboc2rnet-x86_64.dylib
-$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -shared -target arm64-apple-macos11.0 -isysroot macsdk-arm64 -o build/liboc2rnet-arm64.dylib
+$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target x86_64-apple-macos10.8 -isysroot macsdk-intel -o build/liboc2rnet-x86_64.dylib
+$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target arm64-apple-macos11.0 -isysroot macsdk-arm64 -o build/liboc2rnet-arm64.dylib
 
 # build for other platforms
 
