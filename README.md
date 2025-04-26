@@ -10,7 +10,8 @@ The Java ICMP functions don't work on some operating systems without admin/root,
 - GNU/Linux x86_64 and aarch64
 - macOS x86_64 and aarch64
 
-### Not officially supported, but should still work:
+### Not officially supported, but should still build:
 
 - Any Linux
 - Any macOS
+- Any Windows
