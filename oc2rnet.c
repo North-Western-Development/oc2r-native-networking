@@ -48,8 +48,7 @@ static uint16_t checksum(void *b, size_t len) {
 #define cliperror(str)
 #endif
 
-static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
-                      uint32_t timeout) {
+static ssize_t doPing(uint32_t ip, size_t size, char *data, uint32_t timeout) {
   int sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
   if (sockfd < 0) {
     cliperror("socket");
@@ -124,7 +123,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
     return -1;
   }
 
-  memcpy(response, recvbuf + header_size, n - header_size);
+  memcpy(data, recvbuf + header_size, n - header_size);
   free(recvbuf);
   close(sockfd);
   return n - header_size;
@@ -139,8 +138,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
 
 #include <icmpapi.h>
 
-static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
-                      uint32_t timeout) {
+static ssize_t doPing(uint32_t ip, size_t size, char *data, uint32_t timeout) {
   IPAddr ip_addr = ip;
 
   HANDLE hIcmp = IcmpCreateFile();
@@ -174,7 +172,7 @@ static ssize_t doPing(uint32_t ip, size_t size, char *data, char *response,
       return -1;
     } else if (bytesReceived > size)
       bytesReceived = size;
-    memcpy(response, echoReply->Data, bytesReceived);
+    memcpy(data, echoReply->Data, bytesReceived);
     result = bytesReceived;
   }
 #ifdef CLITEST
@@ -214,17 +212,19 @@ int main(int argc, char *argv[]) {
   sscanf(argv[1], "%hhu.%hhu.%hhu.%hhu\n", ip, ip + 1, ip + 2, ip + 3);
   printf("Pinging %hhu.%hhu.%hhu.%hhu\n", ip[0], ip[1], ip[2], ip[3]);
   char *data = malloc(PACKET_SIZE);
-  char *newdata = malloc(PACKET_SIZE);
+  if (!data) {
+    fputs("malloc failed\n", stderr);
+    return 1;
+  }
   memset(data, 0x69, PACKET_SIZE);
-  memset(newdata, 0, PACKET_SIZE);
-  ssize_t ret = doPing(*(uint32_t *)ip, PACKET_SIZE, data, newdata, 1000);
+  ssize_t ret = doPing(*(uint32_t *)ip, PACKET_SIZE, data, 1000);
   if (ret == -1) {
     puts("Ping failed!");
     return 1;
   }
   printf("got back %zd bytes\n", ret);
   FILE *file = fopen("pingout", "w");
-  fwrite(newdata, 1, PACKET_SIZE, file);
+  fwrite(data, 1, ret, file);
   fclose(file);
   return 0;
 }
@@ -238,26 +238,21 @@ Java_li_cil_oc2_common_inet_DefaultSessionLayer_sendICMP(
   (void)obj;
   jbyte *olddata = (*env)->GetByteArrayElements(env, data, NULL);
   jbyte *addr = (*env)->GetByteArrayElements(env, ip, NULL);
-  jbyte *response = calloc(size, 1);
-  if (!response)
-    return NULL;
 
-  ssize_t retsize = doPing(*(uint32_t *)addr, size, (char *)olddata,
-                           (char *)response, timeout);
-  (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
+  ssize_t retsize = doPing(*(uint32_t *)addr, size, (char *)olddata, timeout);
   (*env)->ReleaseByteArrayElements(env, ip, addr, JNI_ABORT);
   if (retsize == -1) {
-    free(response);
+    (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
     return NULL;
   }
 
   jbyteArray ret = (*env)->NewByteArray(env, retsize);
   if (!ret) {
-    free(response);
+    (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
     return NULL;
   }
-  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)response);
-  free(response);
+  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)data);
+  (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
   return ret;
 }
 
