@@ -236,23 +236,23 @@ Java_li_cil_oc2_common_inet_DefaultSessionLayer_sendICMP(
     JNIEnv *env, jobject obj, jbyteArray ip, jbyteArray data, jint size,
     jint timeout) {
   (void)obj;
-  jbyte *olddata = (*env)->GetByteArrayElements(env, data, NULL);
+  jbyte *pingdata = (*env)->GetByteArrayElements(env, data, NULL);
   jbyte *addr = (*env)->GetByteArrayElements(env, ip, NULL);
 
-  ssize_t retsize = doPing(*(uint32_t *)addr, size, (char *)olddata, timeout);
+  ssize_t retsize = doPing(*(uint32_t *)addr, size, (char *)pingdata, timeout);
   (*env)->ReleaseByteArrayElements(env, ip, addr, JNI_ABORT);
   if (retsize == -1) {
-    (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, data, pingdata, JNI_ABORT);
     return NULL;
   }
 
   jbyteArray ret = (*env)->NewByteArray(env, retsize);
   if (!ret) {
-    (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
+    (*env)->ReleaseByteArrayElements(env, data, pingdata, JNI_ABORT);
     return NULL;
   }
-  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)olddata);
-  (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
+  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)pingdata);
+  (*env)->ReleaseByteArrayElements(env, data, pingdata, JNI_ABORT);
   return ret;
 }
 
