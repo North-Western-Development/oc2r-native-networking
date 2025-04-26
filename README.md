@@ -13,3 +13,4 @@ The Java ICMP functions don't work on some operating systems without admin/root,
 ### Not officially supported, but should still work:
 
 - Any Linux
+- Any macOS
