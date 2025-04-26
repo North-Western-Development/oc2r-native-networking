@@ -251,7 +251,7 @@ Java_li_cil_oc2_common_inet_DefaultSessionLayer_sendICMP(
     (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
     return NULL;
   }
-  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)data);
+  (*env)->SetByteArrayRegion(env, ret, 0, retsize, (const jbyte *)olddata);
   (*env)->ReleaseByteArrayElements(env, data, olddata, JNI_ABORT);
   return ret;
 }
