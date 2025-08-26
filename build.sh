@@ -33,7 +33,7 @@ $CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target arm
 # build for other platforms
 
 if ! [ -d zig ]; then
-    wget https://ziglang.org/download/0.14.0/zig-linux-x86_64-0.14.0.tar.xz -O- | tar -xJ
+    wget https://ziglang.org/download/0.15.1/zig-linux-x86_64-0.15.1.tar.xz -O- | tar -xJ
     mv zig-* zig
 fi
 
