@@ -15,20 +15,15 @@ for dep in wget $CLANG $STRIP; do
     fi
 done
 
-if ! [ -d macsdk-intel ]; then
-    wget https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.8.sdk.tar.xz -O- | tar -xJ
-    mv MacOS* macsdk-intel
-fi
-
-if ! [ -d macsdk-arm64 ]; then
+if ! [ -d macsdk ]; then
     wget https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.0.sdk.tar.xz -O- | tar -xJ
-    mv MacOS* macsdk-arm64
+    mv MacOS* macsdk
 fi
 
 mkdir -p build
 
-$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target x86_64-apple-macos10.8 -isysroot macsdk-intel -o build/liboc2rnet-x86_64.dylib
-$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target arm64-apple-macos11.0 -isysroot macsdk-arm64 -o build/liboc2rnet-arm64.dylib
+$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target x86_64-apple-macos10.8 -isysroot macsdk -o build/liboc2rnet-x86_64.dylib
+$CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target arm64-apple-macos11.0 -isysroot macsdk -o build/liboc2rnet-arm64.dylib
 
 # build for other platforms
 

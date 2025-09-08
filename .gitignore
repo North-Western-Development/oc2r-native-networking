@@ -5,6 +5,5 @@
 *.pdb
 .DS_Store
 pingout
-macsdk-intel
-macsdk-arm64
+macsdk
 zig
