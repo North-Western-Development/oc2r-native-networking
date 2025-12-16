@@ -25,6 +25,19 @@ mkdir -p build
 $CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target x86_64-apple-macos10.8 -isysroot macsdk -o build/liboc2rnet-x86_64.dylib
 $CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target arm64-apple-macos11.0 -isysroot macsdk -o build/liboc2rnet-arm64.dylib
 
+# build for android
+
+if ! [ -d ndk ]; then
+    ndkver=29
+    wget "https://dl.google.com/android/repository/android-ndk-r$ndkver-linux.zip" -O ndk.zip
+    unzip ndk.zip
+    rm -f ndk.zip
+    mv "android-ndk-r$ndkver" ndk
+fi
+ndkbin='ndk/toolchains/llvm/prebuilt/linux-x86_64/bin'
+"$ndkbin/aarch64-linux-android21-clang" $CFLAGS -std=c99 oc2rnet.c -shared -o build/liboc2rnet-android-arm64.so
+"$ndkbin/x86_64-linux-android21-clang" $CFLAGS -std=c99 oc2rnet.c -shared -o build/liboc2rnet-android-x86_64.so
+
 # build for other platforms
 
 if ! [ -d zig ]; then
