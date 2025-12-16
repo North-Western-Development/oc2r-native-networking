@@ -41,7 +41,8 @@ ndkbin='ndk/toolchains/llvm/prebuilt/linux-x86_64/bin'
 # build for other platforms
 
 if ! [ -d zig ]; then
-    wget https://ziglang.org/download/0.14.1/zig-x86_64-linux-0.14.1.tar.xz -O- | tar -xJ
+    zigver='0.15.2'
+    wget "https://ziglang.org/download/$zigver/zig-x86_64-linux-$zigver.tar.xz" -O- | tar -xJ
     mv zig-* zig
 fi
 
