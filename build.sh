@@ -30,7 +30,7 @@ $CLANG $CFLAGS -std=c99 -Ijni-headers -fuse-ld=lld oc2rnet.c -bundle -target arm
 if ! [ -d ndk ]; then
     ndkver=29
     wget "https://dl.google.com/android/repository/android-ndk-r$ndkver-linux.zip" -O ndk.zip
-    unzip ndk.zip
+    unzip -q ndk.zip
     rm -f ndk.zip
     mv "android-ndk-r$ndkver" ndk
 fi
